@@ -5,6 +5,7 @@ import { findBestInsertIndex } from '../core/utils';
 import { updateRouteGeometry, syncRouteMarkers } from './routes/route-manager';
 import { generateMapLibreStyle } from './maplibre/artistic-style';
 import { applyMapLibreOverlays } from './maplibre/overlays';
+import { withCartoTileKey } from '../core/carto-key';
 import type { ArtisticTheme } from '../types/themes';
 
 let map: L.Map | null = null;
@@ -27,7 +28,7 @@ export function initMap(containerId: string, initialCenter: [number, number], in
 		touchZoom: 'center',
 	}).setView(initialCenter, initialZoom);
 
-	tileLayer = L.tileLayer(initialTileUrl, {
+	tileLayer = L.tileLayer(withCartoTileKey(initialTileUrl), {
 		maxZoom: 19,
 		crossOrigin: true,
 	}).addTo(map);
@@ -238,7 +239,7 @@ export function updateMapPosition(lat?: number, lon?: number, zoom?: number, opt
 
 export function updateMapTheme(tileUrl: string): void {
 	if (tileLayer) {
-		tileLayer.setUrl(tileUrl);
+		tileLayer.setUrl(withCartoTileKey(tileUrl));
 	}
 }
 
