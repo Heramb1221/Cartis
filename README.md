@@ -60,7 +60,7 @@ It's also a deliberately incremental rewrite: the original version was untyped J
 - Single source of truth for output-size clamping (map snapshot and overlay renderer can't drift out of sync on very large exports)
 
 ### Security Features
-- No backend, no user data leaves the browser except outbound requests to Nominatim/OSRM/Overpass/the elevation tile host (all public, unauthenticated, third-party APIs — see [Security Considerations](#security-considerations))
+- No backend, no user data leaves the browser except outbound requests to Nominatim/OSRM/Overpass/the elevation tile host/CARTO basemaps (public third-party APIs; CARTO raster tiles take an optional client-side key)
 - No `eval`, no dynamic script injection; uploaded files (GPX/GeoJSON/CSV) are parsed as data, never executed
 
 ### Performance Features
@@ -162,6 +162,7 @@ cartis/
 │   │   ├── print-safety.ts         # heuristic CMYK-unsafe color detection
 │   │   ├── share-url.ts            # compressed shareable state URLs
 │   │   ├── coordinate-file-import.ts
+│   │   ├── carto-key.ts            # optional VITE_CARTO_API_KEY for raster tiles
 │   │   └── themes/                 # raster/artistic/custom theme data + CRUD
 │   ├── map/
 │   │   ├── map-init.ts             # dual Leaflet/MapLibre coordinator
@@ -194,11 +195,20 @@ npm run build       # tsc -b && vite build → dist/
 npm run typecheck   # tsc --noEmit only
 ```
 
-No environment setup beyond `npm install` — there is no `.env` file and no API keys to configure (see below).
+Most services need no keys. CARTO raster themes do — copy `.env.example` to `.env` and set `VITE_CARTO_API_KEY` (see below).
 
 ## Environment Variables
 
-**None required.** Every external service used (Nominatim, OSRM, Overpass, the Terrarium elevation tiles) is a free, keyless public endpoint. This is deliberate — it's what makes the "strictly client-side, zero backend" constraint viable at all. The tradeoff is discussed in [Security Considerations](#security-considerations) and [Scalability Discussion](#scalability-discussion).
+Nominatim, OSRM, Overpass, Terrarium, and OpenFreeMap stay keyless. **CARTO raster tiles** (Midnight Dark, Minimal White, Modern Voyager) now require a free API key or they show an “API key required” watermark.
+
+1. Request a key at [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey)
+2. Copy `.env.example` to `.env`
+3. Set `VITE_CARTO_API_KEY` to that key
+4. Restart `npm run dev`
+
+Do not commit `.env`. Vite inlines `VITE_*` values into the client bundle, and the browser sends the key on every tile request — that is how CARTO authenticates raster tiles. Request your own key rather than reusing one from another project.
+
+Artistic / vector mode is unchanged. CARTO’s free tier also requires OpenStreetMap and [CARTO attribution](https://carto.com/attributions) to stay visible.
 
 ## Usage
 
@@ -220,6 +230,7 @@ This project has no backend/API of its own. It's a *consumer* of third-party pub
 | OSRM | Route geometry | `GET https://router.project-osrm.org/route/v1/driving/{lon},{lat};{lon},{lat}?overview=full&geometries=geojson` |
 | Overpass | Transit ways in a bbox | `POST https://overpass-api.de/api/interpreter` with an Overpass QL query body |
 | Terrarium tiles | Elevation raster | `GET https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png` |
+| CARTO raster tiles | Leaflet basemaps (dark / light / voyager) | `GET https://{s}.basemaps.cartocdn.com/.../{z}/{x}/{y}.png?key={VITE_CARTO_API_KEY}` |
 
 
 ## Tradeoffs & Limitations
